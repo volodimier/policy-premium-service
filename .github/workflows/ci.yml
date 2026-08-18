@@ -33,11 +33,33 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
 
-      - name: Build, lint and test
-        run: ./gradlew check --no-daemon
+      # Split into named steps so a failure is attributable at a glance in the Actions
+      # UI. This is for diagnosis, not parallelism - separate jobs would pay the setup
+      # cost three times and recompile independently, which costs more than it buys.
+      # The daemon persists across steps within the job, so later steps reuse a warm JVM.
+      - name: Compile
+        run: ./gradlew classes testClasses
+
+      # --continue so spotless and checkstyle both report, rather than stopping at the first.
+      - name: Lint
+        if: '!cancelled()'
+        run: ./gradlew spotlessCheck checkstyleMain checkstyleTest --continue
+
+      # !cancelled() so a lint failure does not hide test results - one push, full picture.
+      - name: Test
+        if: '!cancelled()'
+        run: ./gradlew test jacocoTestReport
+
+      # Drift guard: the steps above enumerate tasks explicitly, so anything added to
+      # `check` later (a new plugin, SpotBugs) would silently go unrun in CI. This
+      # delegates to `check` itself as the source of truth. Costs seconds - everything
+      # above has already run and is up-to-date - and fails if the two ever diverge.
+      - name: Verify full check task
+        if: '!cancelled()'
+        run: ./gradlew check
 
       - name: Upload test results
-        if: always()
+        if: '!cancelled()'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-results
@@ -46,7 +68,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload coverage report
-        if: always()
+        if: '!cancelled()'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: jacoco-report
