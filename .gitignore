@@ -1,0 +1,33 @@
+# Assessment brief - not part of the deliverable
+reqs.pdf
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# Java
+*.class
+*.log
+hs_err_pid*
+replay_pid*
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+out/
+bin/
+
+# Editor/tooling backups
+*.bak
+
+# OS
+.DS_Store
+Thumbs.db
