@@ -1,0 +1,15 @@
+services:
+  policy-premium-service:
+    build: .
+    image: policy-premium-service:local
+    ports:
+      - "8080:8080"
+    environment:
+      # Sensible default for local runs; overridden by the platform in a real deployment.
+      SPRING_PROFILES_ACTIVE: default
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 3s
+      start_period: 20s
+      retries: 5

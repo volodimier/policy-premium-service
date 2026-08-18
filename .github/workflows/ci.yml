@@ -149,3 +149,66 @@ jobs:
                 }
               ]
             }
+
+  # Builds the deliverable artifact and exercises it. A compile that passes tests is not
+  # proof the container works: the image can still be broken by a bad base, a missing
+  # layer, or a permissions mistake that no unit test would ever catch.
+  image:
+    name: image
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build image
+        run: docker build -t policy-premium-service:ci .
+
+      - name: Verify the image does not run as root
+        run: |
+          uid=$(docker run --rm policy-premium-service:ci id -u)
+          echo "container uid: $uid"
+          test "$uid" != "0"
+
+      - name: Start container
+        run: docker run -d --name pps -p 8080:8080 policy-premium-service:ci
+
+      - name: Wait for health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8080/actuator/health | grep -q '"status":"UP"'; then
+              echo "healthy after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "container never became healthy"
+          exit 1
+
+      - name: Smoke test the API against the running container
+        run: |
+          status=$(curl -s -o created.json -w '%{http_code}' \
+            -X POST http://localhost:8080/api/v1/quotes \
+            -H 'Content-Type: application/json' \
+            -d '{"coverageType":"AUTO","sumInsured":750000,"region":"MALMO","priorClaimsCount":2}')
+          echo "POST status: $status"
+          test "$status" = "201"
+          jq -e '.premium == 4402.20 and .currency == "SEK"' created.json > /dev/null
+          id=$(jq -r '.id' created.json)
+          echo "created quote: $id"
+
+          status=$(curl -s -o fetched.json -w '%{http_code}' "http://localhost:8080/api/v1/quotes/$id")
+          echo "GET status: $status"
+          test "$status" = "200"
+
+          # A retrieved quote must be the stored one, not a fresh calculation.
+          diff created.json fetched.json
+
+      # Logs are only useful when something went wrong, and only then.
+      - name: Container logs
+        if: failure()
+        run: docker logs pps
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f pps || true
