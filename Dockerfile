@@ -42,6 +42,12 @@ RUN java -Djarmode=tools -jar application.jar extract --layers --destination ext
 # Runtime ----------------------------------------------------------------------
 FROM eclipse-temurin:21-jre-alpine
 
+# Pull published security fixes for the base image's OS packages. Base images lag behind
+# the package repositories, so without this the image ships known-fixable CVEs and the
+# Trivy gate in CI fails - correctly. Cost is a little reproducibility: two builds of the
+# same commit on different days can contain different package versions.
+RUN apk --no-cache upgrade
+
 # Runs as an unprivileged user. Application files stay owned by root, so the process
 # can read its own code but not modify it.
 RUN addgroup -S app && adduser -S -G app app

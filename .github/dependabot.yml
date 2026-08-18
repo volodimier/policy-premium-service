@@ -1,0 +1,30 @@
+version: 2
+
+# Weekly rather than daily: this project has a small dependency surface, and a flood of
+# PRs nobody reviews is worse than a slightly slower cadence.
+updates:
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - "type:build"
+    commit-message:
+      prefix: build
+
+  # Actions are pinned to commit SHAs, so they cannot drift on their own and will never
+  # pick up a fix without an explicit update. Dependabot rewrites the pinned SHA and the
+  # version comment together, which is what makes SHA pinning maintainable rather than a
+  # promise to check manually and forget.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - "type:ci"
+    commit-message:
+      prefix: ci
