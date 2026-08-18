@@ -157,12 +157,17 @@ jobs:
     name: image
     needs: verify
     runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Build image
-        run: docker build -t policy-premium-service:ci .
+        id: build
+        run: |
+          docker build -t policy-premium-service:ci .
+          echo "digest=$(docker image inspect policy-premium-service:ci --format '{{.Id}}')" >> "$GITHUB_OUTPUT"
 
       # --entrypoint is required: without it the arguments are appended to the image's
       # ENTRYPOINT, which starts the application instead of running `id`, and the step
@@ -230,3 +235,106 @@ jobs:
       - name: Stop container
         if: always()
         run: docker rm -f pps || true
+
+      # Exports the image that was just smoke-tested and scanned, so the deploy job can
+      # promote that exact artifact rather than rebuilding one. A rebuild of the same commit
+      # is not the same image: `apk upgrade` in the runtime stage can pull different package
+      # versions minutes later.
+      #
+      # Only on main, since pull requests never deploy and the upload is not free.
+      - name: Export tested image
+        if: github.ref == 'refs/heads/main'
+        run: docker save policy-premium-service:ci | gzip > image.tar.gz
+
+      - name: Upload tested image
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: tested-image
+          path: image.tar.gz
+          retention-days: 1
+
+  # ⚠️ DELIBERATELY MOCKED ⚠️
+  #
+  # Publishes nothing and deploys nowhere. The commands are printed, not executed. See the
+  # README for what is needed to make it real.
+  #
+  # Runs only on main, and only after the image has been built, smoke-tested and scanned.
+  deploy:
+    name: deploy to staging (MOCK)
+    needs: image
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      # .invalid is reserved and never resolves, so nobody mistakes this for a live service.
+      url: https://staging.policy-premium.example.invalid
+    steps:
+      - name: Download tested image
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: tested-image
+
+      - name: Load and verify it is the tested artifact
+        id: promote
+        run: |
+          docker load < image.tar.gz
+          digest=$(docker image inspect policy-premium-service:ci --format '{{.Id}}')
+          echo "tested:   ${{ needs.image.outputs.digest }}"
+          echo "promoted: $digest"
+          test "$digest" = "${{ needs.image.outputs.digest }}"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "tag=policy-premium-service:${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy (mocked)
+        env:
+          IMAGE: ${{ steps.promote.outputs.tag }}
+        run: |
+          docker tag policy-premium-service:ci "$IMAGE"
+          echo "=========================================================="
+          echo " MOCK DEPLOYMENT - nothing is published and nothing is"
+          echo " deployed. The commands below are printed, not executed."
+          echo "=========================================================="
+          echo
+          echo "Would authenticate to the registry:"
+          echo "  echo \$REGISTRY_TOKEN | docker login ghcr.io -u \$ACTOR --password-stdin"
+          echo
+          echo "Would publish the promoted image:"
+          echo "  docker push ghcr.io/\$OWNER/$IMAGE"
+          echo
+          echo "Would roll it out and wait for readiness:"
+          echo "  kubectl set image deployment/policy-premium-service app=ghcr.io/\$OWNER/$IMAGE -n staging"
+          echo "  kubectl rollout status deployment/policy-premium-service -n staging --timeout=5m"
+          echo
+          echo "Would verify the deployment before declaring success:"
+          echo "  curl -fsS https://staging.policy-premium.example.invalid/actuator/health"
+          echo
+          echo "Would roll back automatically on failure:"
+          echo "  kubectl rollout undo deployment/policy-premium-service -n staging"
+
+      - name: Record the mock in the run summary
+        env:
+          IMAGE: ${{ steps.promote.outputs.tag }}
+          DIGEST: ${{ steps.promote.outputs.digest }}
+        run: |
+          {
+            echo "### 🚧 Mock deployment"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Image | \`$IMAGE\` |"
+            echo "| Digest | \`$DIGEST\` |"
+            echo "| Published | **No** — no registry is configured |"
+            echo "| Deployed | **No** — no target is configured |"
+            echo
+            echo "The image above is the **same artifact** that passed the container smoke test"
+            echo "and the vulnerability scan in this run — it was promoted, not rebuilt."
+            echo
+            echo "To make this real, two things are needed:"
+            echo "1. A registry and credentials, so the image is published rather than discarded."
+            echo "2. A deployment target and its secrets, so the rollout, health verification and"
+            echo "   rollback steps can actually run."
+            echo
+            echo "Everything else — gating on green lint, tests and a scanned container, deriving an"
+            echo "immutable tag from the commit SHA, and the environment gate — is real."
+          } >> "$GITHUB_STEP_SUMMARY"
