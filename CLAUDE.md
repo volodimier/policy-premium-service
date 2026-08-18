@@ -16,7 +16,7 @@ and *not* on the premium logic. Resist gold-plating.
 
 ## Stack
 
-- Java 21, Spring Boot 3.5.x
+- Java 21, Spring Boot 4.1.x (note: Boot 4 renamed starters, e.g. `spring-boot-starter-webmvc`)
 - Gradle via the wrapper (`./gradlew`), Kotlin DSL (`build.gradle.kts`)
 - JUnit 5 + AssertJ, Spring MockMvc
 - Spotless + Checkstyle (lint), JaCoCo (report only, no gate)
