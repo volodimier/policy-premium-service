@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import com.example.policypremium.domain.CoverageType;
 import com.example.policypremium.domain.PolicyAttributes;
+import com.example.policypremium.domain.PremiumBreakdown;
+import com.example.policypremium.domain.PremiumCalculation;
 import com.example.policypremium.domain.Region;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.DisplayName;

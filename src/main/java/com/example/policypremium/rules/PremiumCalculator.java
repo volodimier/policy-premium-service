@@ -1,6 +1,8 @@
 package com.example.policypremium.rules;
 
 import com.example.policypremium.domain.PolicyAttributes;
+import com.example.policypremium.domain.PremiumBreakdown;
+import com.example.policypremium.domain.PremiumCalculation;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Objects;

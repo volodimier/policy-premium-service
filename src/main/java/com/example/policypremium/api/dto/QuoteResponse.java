@@ -1,6 +1,6 @@
 package com.example.policypremium.api.dto;
 
-import com.example.policypremium.rules.PremiumCalculation;
+import com.example.policypremium.domain.Quote;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -8,8 +8,8 @@ import java.util.UUID;
 /**
  * A calculated quote as returned to callers.
  *
- * <p>The request is echoed back so a stored quote is self-describing: a caller fetching one
- * later can see what it was priced from without holding on to their original payload.
+ * <p>Built from a stored {@link Quote}, so {@code POST} and {@code GET} return an identical
+ * shape and a caller never has to special-case which one they used.
  *
  * @param id server-assigned identifier, usable with {@code GET /api/v1/quotes/{id}}
  * @param premium payable premium, always at 2dp
@@ -22,18 +22,18 @@ public record QuoteResponse(
         UUID id,
         BigDecimal premium,
         String currency,
-        QuoteRequest input,
+        PolicyAttributesResponse input,
         BreakdownResponse breakdown,
         Instant createdAt) {
 
-    /** Assembles a response from a calculation and the request that produced it. */
-    public static QuoteResponse from(UUID id, QuoteRequest request, PremiumCalculation calculation, Instant createdAt) {
+    /** Maps a stored quote onto the published response shape. */
+    public static QuoteResponse from(Quote quote) {
         return new QuoteResponse(
-                id,
-                calculation.premium(),
-                calculation.currency(),
-                request,
-                BreakdownResponse.from(calculation.breakdown()),
-                createdAt);
+                quote.id(),
+                quote.calculation().premium(),
+                quote.calculation().currency(),
+                PolicyAttributesResponse.from(quote.attributes()),
+                BreakdownResponse.from(quote.calculation().breakdown()),
+                quote.createdAt());
     }
 }

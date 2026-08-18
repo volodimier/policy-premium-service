@@ -1,15 +1,18 @@
 package com.example.policypremium.api;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.policypremium.store.InMemoryQuoteStore;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -28,7 +31,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * only enough of the numbers to prove the wiring is right.
  */
 @WebMvcTest(QuoteController.class)
-@Import(GlobalExceptionHandler.class)
+@Import({GlobalExceptionHandler.class, InMemoryQuoteStore.class})
 class QuoteControllerTest {
 
     private static final Instant FIXED_NOW = Instant.parse("2026-08-18T12:00:00Z");
@@ -215,6 +218,27 @@ class QuoteControllerTest {
                             .content("{\"coverageType\": \"HOME\", "))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.title").value("Malformed request"));
+        }
+    }
+
+    @Nested
+    @DisplayName("retrieval")
+    class Retrieval {
+
+        @Test
+        void returnsNotFoundForAnIdThatWasNeverIssued() throws Exception {
+            mockMvc.perform(get("/api/v1/quotes/{id}", UUID.randomUUID()))
+                    .andExpect(status().isNotFound())
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                    .andExpect(jsonPath("$.title").value("Quote not found"));
+        }
+
+        /** A non-UUID path variable is a caller error, so 400 rather than 500. */
+        @Test
+        void returnsBadRequestForAnIdThatIsNotAUuid() throws Exception {
+            mockMvc.perform(get("/api/v1/quotes/{id}", "not-a-uuid"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.title").value("Invalid request"));
         }
     }
 }
