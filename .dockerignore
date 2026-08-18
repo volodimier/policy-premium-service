@@ -1,0 +1,21 @@
+# Build output - the image builds from source, never from a host-built artifact,
+# so that what ships is reproducible rather than whatever happened to be lying around.
+build/
+.gradle/
+
+# Version control and CI
+.git/
+.github/
+.gitattributes
+.gitignore
+
+# Docs and local tooling
+*.md
+LICENSE
+.editorconfig
+.idea/
+.vscode/
+*.bak
+
+# Assessment brief - not part of the deliverable
+reqs.pdf
