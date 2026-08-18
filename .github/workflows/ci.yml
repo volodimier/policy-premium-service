@@ -164,9 +164,12 @@ jobs:
       - name: Build image
         run: docker build -t policy-premium-service:ci .
 
+      # --entrypoint is required: without it the arguments are appended to the image's
+      # ENTRYPOINT, which starts the application instead of running `id`, and the step
+      # hangs until the job times out.
       - name: Verify the image does not run as root
         run: |
-          uid=$(docker run --rm policy-premium-service:ci id -u)
+          uid=$(docker run --rm --entrypoint id policy-premium-service:ci -u)
           echo "container uid: $uid"
           test "$uid" != "0"
 
