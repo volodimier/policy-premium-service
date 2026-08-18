@@ -207,6 +207,21 @@ jobs:
           # A retrieved quote must be the stored one, not a fresh calculation.
           diff created.json fetched.json
 
+      # Scans the same image that was just proven to work, rather than a rebuilt one.
+      #
+      # --ignore-unfixed: fails only on vulnerabilities with a fix available. Failing on
+      # unfixable base-image CVEs would block unrelated PRs with no remedy beyond adding a
+      # suppression, which trains people to suppress rather than to fix.
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: policy-premium-service:ci
+          format: table
+          exit-code: '1'
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          vuln-type: os,library
+
       # Logs are only useful when something went wrong, and only then.
       - name: Container logs
         if: failure()
