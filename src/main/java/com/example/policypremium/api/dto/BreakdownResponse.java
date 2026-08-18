@@ -1,6 +1,6 @@
 package com.example.policypremium.api.dto;
 
-import com.example.policypremium.rules.PremiumBreakdown;
+import com.example.policypremium.domain.PremiumBreakdown;
 import java.math.BigDecimal;
 
 /**

@@ -13,6 +13,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
  * Translates failures into RFC 7807 problem details, so every error shares one shape.
@@ -50,6 +51,27 @@ public class GlobalExceptionHandler {
                 ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Request body could not be parsed");
         problem.setTitle("Malformed request");
         problem.setProperty("accepted", acceptedValues());
+        return problem;
+    }
+
+    /** Quote id that was never issued. */
+    @ExceptionHandler(QuoteNotFoundException.class)
+    public ProblemDetail handleQuoteNotFound(QuoteNotFoundException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
+        problem.setTitle("Quote not found");
+        problem.setProperty("quoteId", String.valueOf(exception.id()));
+        return problem;
+    }
+
+    /**
+     * Path variable that could not be converted - typically an id that is not a UUID. A caller
+     * error, so 400 rather than the 500 this would otherwise become.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, "'" + exception.getValue() + "' is not a valid " + exception.getName());
+        problem.setTitle("Invalid request");
         return problem;
     }
 

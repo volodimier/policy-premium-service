@@ -1,4 +1,4 @@
-package com.example.policypremium.rules;
+package com.example.policypremium.domain;
 
 import java.math.BigDecimal;
 import java.util.Objects;
@@ -10,7 +10,10 @@ import java.util.Objects;
  * lifetime, while this is the pure output of a calculation. Keeping them separate lets the
  * calculator stay a function of its inputs with no knowledge of persistence or identity.
  *
- * @param premium payable premium, rounded to 2dp in {@link RateTable#CURRENCY}
+ * <p>Lives in the domain rather than alongside the calculator so that {@code Quote} can hold
+ * one without the domain depending on the rules package.
+ *
+ * @param premium payable premium, rounded to 2dp
  * @param currency ISO 4217 code of {@link #premium}
  * @param breakdown the factors that produced it
  */
