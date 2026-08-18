@@ -17,8 +17,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: build
+  verify:
+    name: verify
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
