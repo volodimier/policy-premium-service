@@ -97,6 +97,11 @@ jobs:
 
       # No `quality-gates` input: quality is monitored and reported, never gated. Coverage
       # is deliberately not a pass/fail criterion here - see README.
+      #
+      # Patterns target report output directories specifically. A looser `**/checkstyle/*.xml`
+      # also matched config/checkstyle/checkstyle.xml - the ruleset, not a report - and
+      # aborted grading. Note the action still exits 0 when parsing fails, so a green
+      # `quality` check is not by itself proof that the report was produced.
       - name: Report quality
         uses: uhafner/quality-monitor@0100da6973a1498aad89af676852a8c788d397f8 # v4.15.0
         with:
@@ -109,7 +114,7 @@ jobs:
                   {
                     "id": "junit",
                     "name": "Unit tests",
-                    "pattern": "**/TEST-*.xml"
+                    "pattern": "**/test-results/test/TEST-*.xml"
                   }
                 ]
               },
@@ -119,7 +124,7 @@ jobs:
                   "tools": [
                     {
                       "id": "checkstyle",
-                      "pattern": "**/checkstyle/*.xml"
+                      "pattern": "**/reports/checkstyle/*.xml"
                     }
                   ]
                 }
@@ -132,13 +137,13 @@ jobs:
                       "id": "jacoco",
                       "metric": "line",
                       "sourcePath": "src/main/java",
-                      "pattern": "**/jacocoTestReport.xml"
+                      "pattern": "**/reports/jacoco/test/jacocoTestReport.xml"
                     },
                     {
                       "id": "jacoco",
                       "metric": "branch",
                       "sourcePath": "src/main/java",
-                      "pattern": "**/jacocoTestReport.xml"
+                      "pattern": "**/reports/jacoco/test/jacocoTestReport.xml"
                     }
                   ]
                 }
