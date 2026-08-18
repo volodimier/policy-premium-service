@@ -43,6 +43,7 @@ jobs:
           name: test-results
           path: build/reports/tests/test/
           retention-days: 7
+          if-no-files-found: ignore
 
       - name: Upload coverage report
         if: always()
@@ -51,3 +52,4 @@ jobs:
           name: jacoco-report
           path: build/reports/jacoco/test/
           retention-days: 7
+          if-no-files-found: ignore
