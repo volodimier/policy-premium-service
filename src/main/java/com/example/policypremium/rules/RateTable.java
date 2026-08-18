@@ -25,8 +25,14 @@ public final class RateTable {
     /** ISO 4217 code for all amounts this service produces. */
     public static final String CURRENCY = "SEK";
 
-    /** No premium is ever quoted below this, however favourable the factors. */
-    public static final BigDecimal MINIMUM_PREMIUM = new BigDecimal("500.00");
+    /**
+     * No premium is ever quoted below this, however favourable the factors.
+     *
+     * <p>Set above the cheapest combination the table can produce (LIABILITY in NORTH, in the
+     * lowest band, with no prior claims, prices at 720) so the floor actually engages at the
+     * bottom of the book rather than being a rule that never fires.
+     */
+    public static final BigDecimal MINIMUM_PREMIUM = new BigDecimal("750.00");
 
     /** Prior-claims loading is capped at this many claims; anything higher rates the same. */
     public static final int CLAIMS_CAP = 4;

@@ -106,7 +106,7 @@ class RateTableTest {
 
     @Test
     void minimumPremiumAndCurrencyArePublished() {
-        assertThat(RateTable.MINIMUM_PREMIUM).isEqualByComparingTo(new BigDecimal("500"));
+        assertThat(RateTable.MINIMUM_PREMIUM).isEqualByComparingTo(new BigDecimal("750"));
         assertThat(RateTable.CURRENCY).isEqualTo("SEK");
     }
 }
